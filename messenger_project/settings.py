@@ -61,17 +61,20 @@ TEMPLATES = [
 WSGI_APPLICATION = 'messenger_project.wsgi.application'
 ASGI_APPLICATION = 'messenger_project.asgi.application'
 
-# Channels configuration
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'http://0.0.0.0:8000',
+]
+
+# Для WebSocket используем локальный слой (без Redis)
 CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)],
-        },
-    },
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    }
 }
 
-# Database
+# SQLite для простоты (оставьте как есть)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
