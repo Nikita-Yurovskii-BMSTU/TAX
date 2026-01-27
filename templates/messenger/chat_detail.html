@@ -1,0 +1,296 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Чат: {{ chat }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .message-container {
+        scroll-behavior: smooth;
+    }
+    .message-bubble {
+        max-width: 70%;
+        word-wrap: break-word;
+    }
+    .own-message {
+        margin-left: auto;
+        background-color: #3B82F6;
+        color: white;
+        border-radius: 1rem 1rem 0 1rem;
+    }
+    .other-message {
+        margin-right: auto;
+        background-color: #E5E7EB;
+        color: #374151;
+        border-radius: 1rem 1rem 1rem 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex flex-col h-screen">
+    <div class="bg-white rounded-lg shadow-lg mb-4 p-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold">{{ chat }}</h1>
+                <div class="flex items-center mt-2">
+                    {% for participant in chat.participants.all %}
+                    <div class="flex items-center mr-4">
+                        {% if participant.avatar %}
+                        <img src="{{ participant.avatar.url }}" alt="{{ participant.username }}"
+                             class="w-8 h-8 rounded-full mr-2">
+                        {% else %}
+                        <div class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center mr-2">
+                            {{ participant.username|first|upper }}
+                        </div>
+                        {% endif %}
+                        <span class="text-sm">
+                            {{ participant.username }}
+                            {% if participant.online %}
+                            <span class="text-green-500 ml-1">●</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <a href="{% url 'chat_list' %}" class="text-blue-600 hover:text-blue-800">
+                <i class="fas fa-arrow-left"></i> Назад к списку чатов
+            </a>
+        </div>
+    </div>
+
+    <div id="message-container" class="message-container bg-gray-50 rounded-lg p-4 mb-4 overflow-y-auto">
+        {% for message in messages %}
+        <div class="message mb-3 {% if message.sender == user %}text-right{% endif %}"
+             data-message-id="{{ message.id }}">
+            <div class="inline-block">
+                {% if message.sender != user %}
+                <div class="text-sm text-gray-600 mb-1">
+                    {% if message.sender.avatar %}
+                    <img src="{{ message.sender.avatar.url }}" alt="{{ message.sender.username }}"
+                         class="w-6 h-6 rounded-full inline-block mr-2">
+                    {% else %}
+                    <div class="w-6 h-6 rounded-full bg-blue-500 text-white inline-flex items-center justify-center mr-2 text-xs">
+                        {{ message.sender.username|first|upper }}
+                    </div>
+                    {% endif %}
+                    {{ message.sender.username }}
+                </div>
+                {% endif %}
+                <div class="message-bubble p-3 {% if message.sender == user %}own-message{% else %}other-message{% endif %}">
+                    {{ message.content|linebreaksbr }}
+                </div>
+                <div class="text-xs text-gray-500 mt-1">
+                    {{ message.timestamp|date:"H:i" }}
+                    {% if message.sender == user and message.is_read %}
+                    <i class="fas fa-check-double text-blue-500 ml-1"></i>
+                    {% elif message.sender == user %}
+                    <i class="fas fa-check text-gray-400 ml-1"></i>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center text-gray-500 py-8">
+            <i class="fas fa-comments text-4xl mb-4"></i>
+            <p>Начните общение! Отправьте первое сообщение.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div id="typing-indicator" class="typing-indicator text-gray-500 text-sm mb-2">
+        <span id="typing-text"></span>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-4">
+        <form id="message-form" class="flex">
+            {% csrf_token %}
+            <input type="text" id="message-input"
+                   class="flex-grow border border-gray-300 rounded-l-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   placeholder="Введите сообщение..." autocomplete="off">
+            <button type="submit"
+                    class="bg-blue-600 text-white px-6 py-2 rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const chatId = {{ chat.id }};
+    const userId = {{ user.id }};
+    const username = "{{ user.username }}";
+
+    // WebSocket соединение
+    const chatSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/chat/' + chatId + '/'
+    );
+
+    // Элементы DOM
+    const messageContainer = document.getElementById('message-container');
+    const messageForm = document.getElementById('message-form');
+    const messageInput = document.getElementById('message-input');
+    const typingIndicator = document.getElementById('typing-indicator');
+    const typingText = document.getElementById('typing-text');
+
+    let typingTimeout;
+    let isConnected = false;
+
+    // Фокус на поле ввода
+    messageInput.focus();
+
+    // Прокрутка вниз
+    function scrollToBottom() {
+        messageContainer.scrollTop = messageContainer.scrollHeight;
+    }
+
+    // Форматирование времени
+    function formatTime(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }
+
+    // Экранирование HTML
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Добавление сообщения в чат
+    function addMessageToChat(data) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message mb-3 ${data.sender_id === userId ? 'text-right' : ''}`;
+        messageDiv.dataset.messageId = data.message_id;
+
+        const isOwnMessage = data.sender_id === userId;
+        const escapedMessage = escapeHtml(data.message);
+        const formattedMessage = escapedMessage.replace(/\n/g, '<br>');
+        const formattedTime = formatTime(data.timestamp);
+
+        const messageContent = `
+            ${!isOwnMessage ? `
+                <div class="text-sm text-gray-600 mb-1">
+                    ${escapeHtml(data.sender_username)}
+                </div>
+            ` : ''}
+            <div class="inline-block">
+                <div class="message-bubble p-3 ${isOwnMessage ? 'own-message' : 'other-message'}">
+                    ${formattedMessage}
+                </div>
+                <div class="text-xs text-gray-500 mt-1">
+                    ${formattedTime}
+                    ${isOwnMessage ? '<i class="fas fa-check text-gray-400 ml-1"></i>' : ''}
+                </div>
+            </div>
+        `;
+
+        messageDiv.innerHTML = messageContent;
+        messageContainer.appendChild(messageDiv);
+        scrollToBottom();
+    }
+
+    // Обработчик получения сообщений
+    chatSocket.onmessage = function(e) {
+        try {
+            const data = JSON.parse(e.data);
+
+            if (data.type === 'chat_message') {
+                addMessageToChat(data);
+            } else if (data.type === 'typing') {
+                if (data.is_typing && data.user_id !== userId) {
+                    typingText.textContent = `${data.username} печатает...`;
+                    typingIndicator.classList.add('active');
+                } else {
+                    typingIndicator.classList.remove('active');
+                }
+            }
+        } catch (error) {
+            console.error('Ошибка обработки сообщения:', error);
+        }
+    };
+
+    // Обработчик открытия соединения
+    chatSocket.onopen = function() {
+        console.log('WebSocket соединение установлено');
+        isConnected = true;
+    };
+
+    // Обработчик закрытия соединения
+    chatSocket.onclose = function(e) {
+        console.log('WebSocket соединение закрыто', e);
+        isConnected = false;
+    };
+
+    // Обработчик ошибок
+    chatSocket.onerror = function(error) {
+        console.error('WebSocket ошибка:', error);
+    };
+
+    // Отправка сообщения
+    messageForm.onsubmit = function(e) {
+        e.preventDefault();
+
+        const message = messageInput.value.trim();
+        if (message && isConnected) {
+            chatSocket.send(JSON.stringify({
+                'type': 'chat_message',
+                'message': message
+            }));
+            messageInput.value = '';
+            messageInput.focus();
+
+            // Отправляем сигнал о прекращении набора
+            clearTimeout(typingTimeout);
+            chatSocket.send(JSON.stringify({
+                'type': 'typing',
+                'is_typing': false
+            }));
+        }
+    };
+
+    // Отслеживание набора текста
+    let lastTypingTime = 0;
+    const TYPING_TIMEOUT = 1000; // 1 секунда
+
+    messageInput.addEventListener('input', function() {
+        const now = Date.now();
+
+        // Отправляем сигнал о наборе не чаще чем раз в секунду
+        if (now - lastTypingTime > TYPING_TIMEOUT && isConnected) {
+            chatSocket.send(JSON.stringify({
+                'type': 'typing',
+                'is_typing': true
+            }));
+            lastTypingTime = now;
+        }
+
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => {
+            if (isConnected) {
+                chatSocket.send(JSON.stringify({
+                    'type': 'typing',
+                    'is_typing': false
+                }));
+            }
+        }, 2000);
+    });
+
+    // Отправка сообщения по Enter (без Shift)
+    messageInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            messageForm.dispatchEvent(new Event('submit'));
+        }
+    });
+
+    // Прокрутка при загрузке
+    window.onload = scrollToBottom;
+
+    // Автопрокрутка при изменении размера окна
+    window.addEventListener('resize', scrollToBottom);
+</script>
+{% endblock %}

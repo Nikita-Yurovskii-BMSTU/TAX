@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Мессенджер{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+    .message-container {
+        height: calc(100vh - 200px);
+        overflow-y: auto;
+        scroll-behavior: smooth;
+    }
+    .chat-list {
+        height: calc(100vh - 150px);
+        overflow-y: auto;
+    }
+    .typing-indicator {
+        display: none;
+        height: 20px;
+    }
+    .typing-indicator.active {
+        display: block;
+    }
+    .message-bubble {
+        max-width: 70%;
+        word-wrap: break-word;
+        white-space: pre-wrap; /* Сохраняем переносы строк */
+    }
+    .own-message {
+        margin-left: auto;
+        background-color: #3B82F6;
+        color: white;
+        border-radius: 1rem 1rem 0 1rem;
+    }
+    .other-message {
+        margin-right: auto;
+        background-color: #E5E7EB;
+        color: #374151;
+        border-radius: 1rem 1rem 1rem 0;
+    }
+    /* Анимация для новых сообщений */
+    @keyframes fadeIn {
+        from { opacity: 0.5; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .message {
+        animation: fadeIn 0.3s ease-out;
+    }
+</style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'chat_list' %}" class="text-2xl font-bold">
+                        <i class="fas fa-comments mr-2"></i>Мессенджер
+                    </a>
+                    {% if user.is_authenticated %}
+                    <div class="text-sm">
+                        <i class="fas fa-circle text-green-400"></i>
+                        {{ user.username }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'chat_list' %}" class="hover:text-blue-200">
+                        <i class="fas fa-home mr-1"></i>Чаты
+                    </a>
+                    <a href="{% url 'search_users' %}" class="hover:text-blue-200">
+                        <i class="fas fa-search mr-1"></i>Поиск
+                    </a>
+                    <a href="{% url 'user_list' %}" class="hover:text-blue-200">
+                        <i class="fas fa-users mr-1"></i>Пользователи
+                    </a>
+                    <a href="{% url 'create_group' %}" class="hover:text-blue-200">
+                        <i class="fas fa-plus-circle mr-1"></i>Создать группу
+                    </a>
+                    <a href="{% url 'profile' %}" class="hover:text-blue-200">
+                        <i class="fas fa-user mr-1"></i>Профиль
+                    </a>
+                    <a href="{% url 'logout' %}" class="bg-red-500 hover:bg-red-600 px-3 py-2 rounded">
+                        <i class="fas fa-sign-out-alt mr-1"></i>Выйти
+                    </a>
+                    {% else %}
+                    <a href="{% url 'login' %}" class="hover:text-blue-200">Войти</a>
+                    <a href="{% url 'register' %}" class="bg-green-500 hover:bg-green-600 px-3 py-2 rounded">
+                        Регистрация
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-6">
+        {% if messages %}
+        <div class="mb-4">
+            {% for message in messages %}
+            <div class="p-4 rounded {% if message.tags == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

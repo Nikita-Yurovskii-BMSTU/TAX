@@ -1,0 +1,68 @@
+{% extends 'base_auth.html' %}
+
+{% block title %}Регистрация{% endblock %}
+
+{% block content %}
+<h2 class="text-xl font-bold text-center mb-6">Создание аккаунта</h2>
+
+<form method="post" class="space-y-4" enctype="multipart/form-data">
+    {% csrf_token %}
+    
+    {% for field in form %}
+    <div>
+        <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+            {{ field.label }}
+        </label>
+        
+        {% if field.name == 'avatar' %}
+        <div class="flex items-center space-x-4">
+            {% if field.value %}
+            <img src="{{ field.value.url }}" alt="Аватар" class="w-16 h-16 rounded-full">
+            {% endif %}
+            <input type="file" name="{{ field.name }}" id="{{ field.id_for_label }}"
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+        </div>
+        {% else %}
+        <input type="{{ field.field.widget.input_type }}" 
+               name="{{ field.name }}" 
+               id="{{ field.id_for_label }}"
+               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+               placeholder="{{ field.field.widget.attrs.placeholder|default:'' }}"
+               {% if field.field.required %}required{% endif %}
+               value="{{ field.value|default:'' }}">
+        {% endif %}
+        
+        {% if field.errors %}
+        <div class="mt-1 text-sm text-red-600">
+            {{ field.errors }}
+        </div>
+        {% endif %}
+        
+        {% if field.help_text %}
+        <p class="mt-1 text-sm text-gray-500">{{ field.help_text }}</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+    
+    <div class="mt-6">
+        <button type="submit" 
+                class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200">
+            <i class="fas fa-user-plus mr-2"></i>Зарегистрироваться
+        </button>
+    </div>
+</form>
+
+<div class="mt-6 pt-6 border-t border-gray-200">
+    <p class="text-center text-gray-600">
+        Уже есть аккаунт? 
+        <a href="{% url 'login' %}" class="text-blue-600 hover:text-blue-800 font-medium">
+            Войти
+        </a>
+    </p>
+    <p class="text-center text-gray-600 mt-2">
+        <a href="/" class="text-blue-600 hover:text-blue-800">
+            <i class="fas fa-arrow-left mr-1"></i>На главную
+        </a>
+    </p>
+</div>
+{% endblock %}
