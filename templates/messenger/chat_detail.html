@@ -41,7 +41,7 @@
         max-width: 100%;
         word-wrap: break-word;
         overflow-wrap: break-word;
-        white-space: normal !important;  /* Важно! Отменяем перенос каждой буквы */
+        white-space: normal !important;
         word-break: normal;
         display: inline-block;
         padding: 0.75rem 1rem;
@@ -390,10 +390,6 @@
             height: calc(100vh - 120px);
         }
 
-<!--        .message-bubble {-->
-<!--            max-width: min(100%, 500px);-->
-<!--        }-->
-
         .media-message {
             max-width: 250px;
         }
@@ -672,6 +668,8 @@
     const previewItems = document.getElementById('preview-items');
     const recordingIndicator = document.getElementById('recording-indicator');
     const recordingTimer = document.getElementById('recording-timer');
+    const typingIndicator = document.getElementById('typing-indicator');
+    const typingText = document.getElementById('typing-text');
 
     // Состояние
     let typingTimeout;
@@ -695,6 +693,173 @@
     // Прокрутка вниз
     function scrollToBottom() {
         messageContainer.scrollTop = messageContainer.scrollHeight;
+    }
+
+    // Экранирование HTML
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Форматирование времени
+    function formatTime() {
+        const now = new Date();
+        return now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }
+
+    // Форматирование размера файла
+    function formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+    }
+
+    // ==================== ФУНКЦИИ ДОБАВЛЕНИЯ СООБЩЕНИЙ ====================
+
+    function addMessageToChat(data) {
+        const isOwnMessage = data.sender_id === userId;
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message';
+        messageDiv.dataset.messageId = data.message_id;
+
+        let html = '';
+
+        if (!isOwnMessage) {
+            html += `<span class="sender-name">${escapeHtml(data.sender_username)}</span>`;
+        }
+
+        html += `<div class="message-bubble ${isOwnMessage ? 'own-message' : 'other-message'}">`;
+        html += `<div class="message-text">${escapeHtml(data.message).replace(/\n/g, '<br>')}</div>`;
+        html += `<span class="message-time">${formatTime()}`;
+        if (isOwnMessage) {
+            html += `<i class="fas fa-check ml-1 text-gray-400"></i>`;
+        }
+        html += `</span></div>`;
+
+        messageDiv.innerHTML = html;
+        messageContainer.appendChild(messageDiv);
+        scrollToBottom();
+    }
+
+    function addMediaMessageToChat(data) {
+        const isOwnMessage = data.sender_id === userId;
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message';
+        messageDiv.dataset.messageId = data.message_id;
+
+        let html = '';
+
+        if (!isOwnMessage) {
+            html += `<span class="sender-name">${escapeHtml(data.sender_username)}</span>`;
+        }
+
+        html += `<div class="message-bubble ${isOwnMessage ? 'own-message' : 'other-message'}">`;
+
+        if (data.content) {
+            html += `<div class="message-text">${escapeHtml(data.content).replace(/\n/g, '<br>')}</div>`;
+        }
+
+        html += `<div class="media-message">`;
+
+        if (data.media.type === 'image') {
+            html += `<div class="media-preview" onclick="openMedia('${data.media.url}')">`;
+            html += `<img src="${data.media.thumbnail_url || data.media.url}" class="media-image" loading="lazy">`;
+            html += `</div>`;
+        }
+        else if (data.media.type === 'video') {
+            html += `<div class="media-preview" onclick="openMedia('${data.media.url}')">`;
+            html += `<video controls class="media-video" preload="metadata">`;
+            html += `<source src="${data.media.url}" type="video/mp4">`;
+            html += `</video>`;
+            html += `</div>`;
+        }
+        else if (data.media.type === 'document') {
+            const ext = data.media.name.split('.').pop().toLowerCase();
+            let icon = 'fa-file';
+            if (ext === 'pdf') icon = 'fa-file-pdf';
+            else if (['doc', 'docx'].includes(ext)) icon = 'fa-file-word';
+            else if (ext === 'txt') icon = 'fa-file-alt';
+
+            html += `<div class="media-document" onclick="downloadFile('${data.media.url}', '${escapeHtml(data.media.name)}')">`;
+            html += `<div class="document-icon"><i class="fas ${icon}"></i></div>`;
+            html += `<div class="document-info">`;
+            html += `<div class="document-name">${escapeHtml(data.media.name)}</div>`;
+            html += `<div class="document-size">${data.media.size}</div>`;
+            html += `</div>`;
+            html += `<div class="text-blue-600"><i class="fas fa-download"></i></div>`;
+            html += `</div>`;
+        }
+
+        html += `</div>`; // Закрываем media-message
+
+        html += `<span class="message-time">${formatTime()}`;
+        if (isOwnMessage) {
+            html += `<i class="fas fa-check ml-1 text-gray-400"></i>`;
+        }
+        html += `</span>`;
+        html += `</div>`; // Закрываем message-bubble
+
+        messageDiv.innerHTML = html;
+        messageContainer.appendChild(messageDiv);
+        scrollToBottom();
+    }
+
+    function addVoiceMessageToChat(data) {
+        const isOwnMessage = data.sender_id === userId;
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message';
+        messageDiv.dataset.messageId = data.message_id;
+
+        let html = '';
+
+        if (!isOwnMessage) {
+            html += `<span class="sender-name">${escapeHtml(data.sender_username)}</span>`;
+        }
+
+        html += `<div class="message-bubble ${isOwnMessage ? 'own-message' : 'other-message'}">`;
+        html += `<div class="media-message">`;
+        html += `<div class="voice-message">`;
+        html += `<button class="voice-play-btn" data-audio-url="${data.voice.url}" onclick="playVoiceMessage(this)">`;
+        html += `<i class="fas fa-play"></i>`;
+        html += `</button>`;
+        html += `<div class="voice-waveform"></div>`;
+        html += `<div class="voice-duration">${data.voice.duration} сек</div>`;
+        html += `</div></div>`;
+        html += `<span class="message-time">${formatTime()}`;
+        if (isOwnMessage) {
+            html += `<i class="fas fa-check ml-1 text-gray-400"></i>`;
+        }
+        html += `</span>`;
+        html += `</div>`;
+
+        messageDiv.innerHTML = html;
+        messageContainer.appendChild(messageDiv);
+        scrollToBottom();
+    }
+
+    // ==================== ВОСПРОИЗВЕДЕНИЕ ГОЛОСОВЫХ ====================
+
+    function playVoiceMessage(button) {
+        const audioUrl = button.dataset.audioUrl;
+        const icon = button.querySelector('i');
+
+        const audio = new Audio(audioUrl);
+
+        audio.addEventListener('play', () => {
+            icon.className = 'fas fa-pause';
+        });
+
+        audio.addEventListener('pause', () => {
+            icon.className = 'fas fa-play';
+        });
+
+        audio.addEventListener('ended', () => {
+            icon.className = 'fas fa-play';
+        });
+
+        audio.play();
     }
 
     // ==================== МЕДИА ФУНКЦИИ ====================
@@ -722,23 +887,16 @@
         if (files.length === 0) return;
 
         files.forEach(file => {
-            // Проверка размера
             if (file.size > maxFileSize) {
                 alert(`Файл "${file.name}" слишком большой. Максимум: 50MB`);
                 return;
             }
 
-            // Добавляем файл в массив
             mediaFiles.push(file);
-
-            // Создаем превью
             createFilePreview(file);
         });
 
-        // Показываем контейнер превью
         previewContainer.style.display = 'block';
-
-        // Очищаем значение input
         event.target.value = '';
     }
 
@@ -747,7 +905,6 @@
         previewItem.className = 'preview-item';
         previewItem.dataset.filename = file.name;
 
-        // Определяем тип файла
         const isImage = file.type.startsWith('image/');
         const isVideo = file.type.startsWith('video/');
 
@@ -784,7 +941,6 @@
             `;
         }
 
-        // Кнопка удаления
         const removeBtn = document.createElement('button');
         removeBtn.className = 'remove-preview';
         removeBtn.innerHTML = '<i class="fas fa-times"></i>';
@@ -797,17 +953,14 @@
     }
 
     function removeFilePreview(filename) {
-        // Удаляем из массива
         const index = mediaFiles.findIndex(f => f.name === filename);
         if (index > -1) {
             mediaFiles.splice(index, 1);
         }
 
-        // Удаляем превью
         const preview = document.querySelector(`.preview-item[data-filename="${filename}"]`);
         if (preview) preview.remove();
 
-        // Скрываем контейнер если нет файлов
         if (mediaFiles.length === 0) {
             previewContainer.style.display = 'none';
         }
@@ -832,16 +985,13 @@
                 isRecording = true;
                 audioChunks = [];
 
-                // Показываем индикатор
                 recordingIndicator.style.display = 'flex';
                 document.getElementById('voice-message-btn').innerHTML = '<i class="fas fa-square text-red-500"></i>';
 
-                // Запускаем таймер
                 recordingStartTime = Date.now();
                 updateRecordingTimer();
                 recordingInterval = setInterval(updateRecordingTimer, 1000);
 
-                // Создаем MediaRecorder
                 mediaRecorder = new MediaRecorder(stream, {
                     mimeType: 'audio/webm;codecs=opus'
                 });
@@ -854,7 +1004,6 @@
                     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                     await sendVoiceMessage(audioBlob);
 
-                    // Скрываем индикатор
                     recordingIndicator.style.display = 'none';
                     document.getElementById('voice-message-btn').innerHTML = '<i class="fas fa-microphone"></i>';
 
@@ -887,7 +1036,6 @@
 
         recordingTimer.textContent = `${minutes}:${seconds}`;
 
-        // Автоостановка через 2 минуты
         if (elapsed >= 120) {
             stopVoiceRecording();
         }
@@ -913,7 +1061,6 @@
             const data = await response.json();
 
             if (data.success && isConnected) {
-                // Отправляем через WebSocket
                 chatSocket.send(JSON.stringify({
                     type: 'voice_message',
                     voice_data: data.voice,
@@ -951,7 +1098,6 @@
                 if (data.success) {
                     results.push(data);
 
-                    // Отправляем через WebSocket
                     if (isConnected) {
                         chatSocket.send(JSON.stringify({
                             type: 'media_message',
@@ -974,13 +1120,11 @@
         const message = messageInput.value.trim();
         sendButton.disabled = true;
 
-        // Отправляем медиафайлы если есть
         if (mediaFiles.length > 0) {
             await sendMediaFiles();
             clearMediaPreview();
             messageInput.value = '';
         }
-        // Отправляем текстовое сообщение
         else if (message && isConnected) {
             chatSocket.send(JSON.stringify({
                 type: 'chat_message',
@@ -989,11 +1133,9 @@
             messageInput.value = '';
         }
 
-        // Сбрасываем высоту поля
         messageInput.style.height = 'auto';
         messageInput.focus();
 
-        // Очищаем таймаут набора текста
         clearTimeout(typingTimeout);
         if (isConnected) {
             chatSocket.send(JSON.stringify({
@@ -1006,13 +1148,6 @@
     };
 
     // ==================== УТИЛИТЫ ====================
-
-    function formatFileSize(bytes) {
-        if (bytes < 1024) return bytes + ' B';
-        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-        if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-        return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
-    }
 
     function openMedia(url) {
         window.open(url, '_blank');
@@ -1055,10 +1190,6 @@
             } else if (data.type === 'voice_message') {
                 addVoiceMessageToChat(data);
             } else if (data.type === 'typing') {
-                // Обработка индикатора набора текста
-                const typingIndicator = document.getElementById('typing-indicator');
-                const typingText = document.getElementById('typing-text');
-
                 if (data.is_typing && data.user_id !== userId) {
                     typingText.textContent = `${data.username} печатает...`;
                     typingIndicator.style.display = 'block';
@@ -1071,29 +1202,12 @@
         }
     };
 
-    // Функции добавления сообщений в чат (упрощенные)
-    function addMessageToChat(data) {
-        // Реализуйте добавление текстового сообщения
-        scrollToBottom();
-    }
-
-    function addMediaMessageToChat(data) {
-        // Реализуйте добавление медиа-сообщения
-        scrollToBottom();
-    }
-
-    function addVoiceMessageToChat(data) {
-        // Реализуйте добавление голосового сообщения
-        scrollToBottom();
-    }
-
     // ==================== ИНИЦИАЛИЗАЦИЯ ====================
 
     document.addEventListener('DOMContentLoaded', function() {
         messageInput.focus();
         scrollToBottom();
 
-        // Обработка Enter/Shift+Enter
         messageInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -1108,6 +1222,26 @@
                 this.selectionStart = this.selectionEnd = start + 1;
                 autoResize(this);
             }
+        });
+
+        // Индикатор набора текста
+        messageInput.addEventListener('input', function() {
+            if (!isConnected) return;
+
+            chatSocket.send(JSON.stringify({
+                type: 'typing',
+                is_typing: true
+            }));
+
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                if (isConnected) {
+                    chatSocket.send(JSON.stringify({
+                        type: 'typing',
+                        is_typing: false
+                    }));
+                }
+            }, 1000);
         });
     });
 </script>
