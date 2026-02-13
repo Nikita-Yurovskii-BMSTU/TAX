@@ -5,207 +5,1065 @@
 
 {% block extra_css %}
 <style>
+    /* Основные стили чата */
+    .chat-wrapper {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 140px);
+        max-height: calc(100vh - 140px);
+        overflow: hidden;
+    }
+
+    .chat-header {
+        background: white;
+        border-bottom: 1px solid #e5e7eb;
+        padding: 1rem;
+        flex-shrink: 0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
     .message-container {
+        flex-grow: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 1rem;
+        background: #f9fafb;
         scroll-behavior: smooth;
     }
+
+    .message {
+        margin-bottom: 1rem;
+        clear: both;
+        animation: fadeIn 0.2s ease-out;
+    }
+
     .message-bubble {
-        max-width: 70%;
+        max-width: 100%;
         word-wrap: break-word;
+        overflow-wrap: break-word;
+        white-space: normal !important;  /* Важно! Отменяем перенос каждой буквы */
+        word-break: normal;
+        display: inline-block;
+        padding: 0.75rem 1rem;
+        border-radius: 1.125rem;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        line-height: 1.4;
     }
+
     .own-message {
-        margin-left: auto;
-        background-color: #3B82F6;
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
         color: white;
-        border-radius: 1rem 1rem 0 1rem;
+        float: right;
+        border-bottom-right-radius: 0.5rem;
     }
+
     .other-message {
-        margin-right: auto;
-        background-color: #E5E7EB;
-        color: #374151;
-        border-radius: 1rem 1rem 1rem 0;
+        background: white;
+        color: #1f2937;
+        border: 1px solid #e5e7eb;
+        float: left;
+        border-bottom-left-radius: 0.5rem;
+    }
+
+    /* Стили для медиа в сообщениях */
+    .media-message {
+        margin-top: 5px;
+        max-width: 300px;
+    }
+
+    .media-preview {
+        border-radius: 10px;
+        overflow: hidden;
+        cursor: pointer;
+        position: relative;
+        border: 1px solid rgba(0,0,0,0.1);
+    }
+
+    .media-image {
+        max-width: 100%;
+        max-height: 300px;
+        display: block;
+        object-fit: cover;
+        transition: transform 0.2s;
+    }
+
+    .media-image:hover {
+        transform: scale(1.02);
+    }
+
+    .media-video {
+        width: 100%;
+        max-height: 300px;
+        border-radius: 10px;
+    }
+
+    .media-document {
+        display: flex;
+        align-items: center;
+        padding: 12px;
+        background: #f8fafc;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        gap: 12px;
+    }
+
+    .document-icon {
+        font-size: 24px;
+        color: #3b82f6;
+    }
+
+    .document-info {
+        flex-grow: 1;
+        min-width: 0;
+    }
+
+    .document-name {
+        font-weight: 500;
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .document-size {
+        font-size: 12px;
+        color: #64748b;
+    }
+
+    .voice-message {
+        display: flex;
+        align-items: center;
+        background: #e0f2fe;
+        padding: 12px 16px;
+        border-radius: 25px;
+        gap: 12px;
+        max-width: 250px;
+    }
+
+    .voice-play-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #3b82f6;
+        color: white;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+
+    .voice-play-btn:hover {
+        background: #2563eb;
+        transform: scale(1.05);
+    }
+
+    .voice-waveform {
+        flex-grow: 1;
+        height: 30px;
+        background: linear-gradient(90deg, #93c5fd 0%, #3b82f6 100%);
+        border-radius: 15px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .voice-duration {
+        font-size: 12px;
+        color: #0369a1;
+        font-weight: 500;
+        min-width: 40px;
+        text-align: center;
+    }
+
+    .media-caption {
+        margin-top: 8px;
+        font-size: 14px;
+        color: inherit;
+        padding: 0 5px;
+    }
+
+    /* Панель ввода с медиа-контролами */
+    .input-wrapper {
+        background: white;
+        border-top: 1px solid #e5e7eb;
+        flex-shrink: 0;
+    }
+
+    .media-controls {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        border-bottom: 1px solid #e5e7eb;
+        gap: 10px;
+    }
+
+    .media-control-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: none;
+        color: #6b7280;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .media-control-btn:hover {
+        background: #f3f4f6;
+        color: #3b82f6;
+        transform: scale(1.1);
+    }
+
+    .media-control-btn.active {
+        background: #3b82f6;
+        color: white;
+    }
+
+    .input-container {
+        padding: 1rem;
+    }
+
+    #message-input {
+        width: 100%;
+        min-height: 44px;
+        max-height: 150px;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 1.5rem;
+        resize: none;
+        font-size: 0.95rem;
+        line-height: 1.4;
+        transition: all 0.2s;
+    }
+
+    #message-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    /* Предпросмотр загружаемых файлов */
+    .preview-container {
+        padding: 1rem;
+        background: #f8fafc;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .preview-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .preview-items {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .preview-item {
+        position: relative;
+        width: 80px;
+        height: 80px;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+    }
+
+    .preview-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .preview-document {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: white;
+        padding: 10px;
+    }
+
+    .remove-preview {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #ef4444;
+        color: white;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        padding: 0;
+    }
+
+    .remove-preview:hover {
+        background: #dc2626;
+    }
+
+    /* Индикатор записи голоса */
+    .recording-indicator {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        background: #fef2f2;
+        border-radius: 10px;
+        margin-bottom: 10px;
+    }
+
+    .recording-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #ef4444;
+        animation: pulse 1.5s infinite;
+    }
+
+    .recording-timer {
+        font-family: monospace;
+        font-weight: bold;
+        color: #dc2626;
+    }
+
+    /* Кнопка отправки */
+    .send-button {
+        position: absolute;
+        right: 1rem;
+        bottom: 1rem;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: #3b82f6;
+        color: white;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+
+    .send-button:hover {
+        background: #2563eb;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .send-button:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    /* Анимации */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    @keyframes waveform {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+
+    /* Адаптивность */
+    @media (max-width: 768px) {
+        .chat-wrapper {
+            height: calc(100vh - 120px);
+        }
+
+<!--        .message-bubble {-->
+<!--            max-width: min(100%, 500px);-->
+<!--        }-->
+
+        .media-message {
+            max-width: 250px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .message-bubble {
+            max-width: 100%;
+        }
+
+        .media-message {
+            max-width: 200px;
+        }
+
+        .media-controls {
+            padding: 0.5rem;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="flex flex-col h-screen">
-    <div class="bg-white rounded-lg shadow-lg mb-4 p-4">
+<div class="chat-wrapper">
+    <!-- Заголовок чата -->
+    <div class="chat-header">
         <div class="flex items-center justify-between">
-            <div>
-                <h1 class="text-2xl font-bold">{{ chat }}</h1>
-                <div class="flex items-center mt-2">
-                    {% for participant in chat.participants.all %}
-                    <div class="flex items-center mr-4">
-                        {% if participant.avatar %}
-                        <img src="{{ participant.avatar.url }}" alt="{{ participant.username }}"
-                             class="w-8 h-8 rounded-full mr-2">
-                        {% else %}
-                        <div class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center mr-2">
-                            {{ participant.username|first|upper }}
-                        </div>
-                        {% endif %}
-                        <span class="text-sm">
+            <div class="flex items-center space-x-3">
+                <a href="{% url 'chat_list' %}" class="text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-800">{{ chat }}</h1>
+                    <div class="flex flex-wrap gap-2 mt-1">
+                        {% for participant in chat.participants.all %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                    {% if participant.online %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {% if participant.avatar %}
+                            <img src="{{ participant.avatar.url }}" alt="{{ participant.username }}"
+                                 class="w-4 h-4 rounded-full mr-1">
+                            {% else %}
+                            <div class="w-4 h-4 rounded-full bg-blue-500 text-white flex items-center justify-center mr-1 text-xs">
+                                {{ participant.username|first|upper }}
+                            </div>
+                            {% endif %}
                             {{ participant.username }}
                             {% if participant.online %}
-                            <span class="text-green-500 ml-1">●</span>
+                            <span class="ml-1 w-2 h-2 bg-green-500 rounded-full"></span>
                             {% endif %}
                         </span>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
                 </div>
             </div>
-            <a href="{% url 'chat_list' %}" class="text-blue-600 hover:text-blue-800">
-                <i class="fas fa-arrow-left"></i> Назад к списку чатов
-            </a>
+            <div class="flex items-center space-x-4">
+                <!-- Кнопка галереи медиа -->
+                <a href="{% url 'media_gallery' chat.id %}"
+                   class="text-blue-600 hover:text-blue-800 flex items-center">
+                    <i class="fas fa-images mr-2"></i>
+                    <span class="hidden md:inline">Медиа</span>
+                </a>
+                <div class="text-sm text-gray-500">
+                    {% if chat.messages.last %}
+                    Последнее: {{ chat.messages.last.timestamp|timesince }} назад
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
 
-    <div id="message-container" class="message-container bg-gray-50 rounded-lg p-4 mb-4 overflow-y-auto">
+    <!-- Контейнер сообщений -->
+    <div id="message-container" class="message-container">
         {% for message in messages %}
-        <div class="message mb-3 {% if message.sender == user %}text-right{% endif %}"
-             data-message-id="{{ message.id }}">
-            <div class="inline-block">
-                {% if message.sender != user %}
-                <div class="text-sm text-gray-600 mb-1">
-                    {% if message.sender.avatar %}
-                    <img src="{{ message.sender.avatar.url }}" alt="{{ message.sender.username }}"
-                         class="w-6 h-6 rounded-full inline-block mr-2">
-                    {% else %}
-                    <div class="w-6 h-6 rounded-full bg-blue-500 text-white inline-flex items-center justify-center mr-2 text-xs">
-                        {{ message.sender.username|first|upper }}
-                    </div>
-                    {% endif %}
-                    {{ message.sender.username }}
+        <div class="message" data-message-id="{{ message.id }}">
+            {% if message.sender != user %}
+            <span class="sender-name">
+                {% if message.sender.avatar %}
+                <img src="{{ message.sender.avatar.url }}" alt="{{ message.sender.username }}"
+                     class="w-5 h-5 rounded-full inline-block mr-2">
+                {% else %}
+                <div class="w-5 h-5 rounded-full bg-blue-500 text-white inline-flex items-center justify-center mr-2 text-xs">
+                    {{ message.sender.username|first|upper }}
                 </div>
                 {% endif %}
-                <div class="message-bubble p-3 {% if message.sender == user %}own-message{% else %}other-message{% endif %}">
+                {{ message.sender.username }}
+            </span>
+            {% endif %}
+
+            <div class="message-bubble {% if message.sender == user %}own-message{% else %}other-message{% endif %}">
+                <!-- Текст сообщения -->
+                {% if message.content %}
+                <div class="message-text">
                     {{ message.content|linebreaksbr }}
                 </div>
-                <div class="text-xs text-gray-500 mt-1">
-                    {{ message.timestamp|date:"H:i" }}
-                    {% if message.sender == user and message.is_read %}
-                    <i class="fas fa-check-double text-blue-500 ml-1"></i>
-                    {% elif message.sender == user %}
-                    <i class="fas fa-check text-gray-400 ml-1"></i>
+                {% endif %}
+
+                <!-- Медиафайл -->
+                {% if message.media_file %}
+                <div class="media-message">
+                    {% if message.media_file.file_type == 'image' %}
+                    <div class="media-preview" onclick="openMedia('{{ message.media_file.file.url }}')">
+                        <img src="{{ message.media_file.get_thumbnail_url }}"
+                             alt="{{ message.media_file.caption|default:message.media_file.file_name }}"
+                             class="media-image"
+                             loading="lazy">
+                    </div>
+
+                    {% elif message.media_file.file_type == 'video' %}
+                    <div class="media-preview" onclick="openMedia('{{ message.media_file.file.url }}')">
+                        <video controls class="media-video" preload="metadata">
+                            <source src="{{ message.media_file.file.url }}" type="video/mp4">
+                            Ваш браузер не поддерживает видео.
+                        </video>
+                    </div>
+
+                    {% elif message.media_file.file_type == 'document' %}
+                    <div class="media-document" onclick="downloadFile('{{ message.media_file.file.url }}', '{{ message.media_file.file_name }}')">
+                        <div class="document-icon">
+                            {% if message.media_file.file_extension == '.pdf' %}
+                            <i class="fas fa-file-pdf"></i>
+                            {% elif message.media_file.file_extension in '.doc,.docx' %}
+                            <i class="fas fa-file-word"></i>
+                            {% elif message.media_file.file_extension == '.txt' %}
+                            <i class="fas fa-file-alt"></i>
+                            {% else %}
+                            <i class="fas fa-file"></i>
+                            {% endif %}
+                        </div>
+                        <div class="document-info">
+                            <div class="document-name">{{ message.media_file.file_name }}</div>
+                            <div class="document-size">{{ message.media_file.get_file_size_display }}</div>
+                        </div>
+                        <div class="text-blue-600">
+                            <i class="fas fa-download"></i>
+                        </div>
+                    </div>
+
+                    {% elif message.media_file.file_type == 'voice' %}
+                    <div class="voice-message">
+                        <button class="voice-play-btn"
+                                data-audio-url="{{ message.media_file.file.url }}">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <div class="voice-waveform"></div>
+                        <div class="voice-duration">{{ message.media_file.duration }} сек</div>
+                    </div>
+                    {% endif %}
+
+                    {% if message.media_file.caption %}
+                    <div class="media-caption">{{ message.media_file.caption }}</div>
                     {% endif %}
                 </div>
+                {% endif %}
+
+                <!-- Время и статус -->
+                <span class="message-time">
+                    {{ message.timestamp|date:"H:i" }}
+                    {% if message.sender == user %}
+                    <i class="fas fa-check ml-1 {% if message.is_read %}text-blue-300{% else %}text-gray-400{% endif %}"></i>
+                    {% endif %}
+                </span>
             </div>
         </div>
         {% empty %}
-        <div class="text-center text-gray-500 py-8">
-            <i class="fas fa-comments text-4xl mb-4"></i>
-            <p>Начните общение! Отправьте первое сообщение.</p>
+        <div class="flex flex-col items-center justify-center h-full text-gray-500">
+            <i class="fas fa-comments text-5xl mb-4"></i>
+            <p class="text-lg font-medium mb-2">Начните общение!</p>
+            <p class="text-sm">Отправьте первое сообщение в этом чате.</p>
+            <p class="text-xs mt-4 text-gray-400">
+                <i class="fas fa-paperclip mr-1"></i>
+                Можно прикреплять фото, видео, документы и голосовые сообщения
+            </p>
         </div>
         {% endfor %}
     </div>
 
-    <div id="typing-indicator" class="typing-indicator text-gray-500 text-sm mb-2">
-        <span id="typing-text"></span>
+    <!-- Индикатор набора текста -->
+    <div id="typing-indicator" class="typing-indicator px-4" style="display: none;">
+        <span id="typing-text" class="italic"></span>
     </div>
 
-    <div class="bg-white rounded-lg shadow p-4">
-        <form id="message-form" class="flex">
-            {% csrf_token %}
-            <input type="text" id="message-input"
-                   class="flex-grow border border-gray-300 rounded-l-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                   placeholder="Введите сообщение..." autocomplete="off">
-            <button type="submit"
-                    class="bg-blue-600 text-white px-6 py-2 rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <i class="fas fa-paper-plane"></i>
+    <!-- Панель ввода с медиа-контролами -->
+    <div class="input-wrapper">
+        <!-- Предпросмотр загружаемых файлов -->
+        <div id="preview-container" class="preview-container" style="display: none;">
+            <div class="preview-header">
+                <span class="text-sm font-medium text-gray-700">Прикрепленные файлы:</span>
+                <button type="button" onclick="clearMediaPreview()"
+                        class="text-sm text-red-600 hover:text-red-800">
+                    <i class="fas fa-times mr-1"></i>Очистить все
+                </button>
+            </div>
+            <div id="preview-items" class="preview-items"></div>
+        </div>
+
+        <!-- Индикатор записи голоса -->
+        <div id="recording-indicator" class="recording-indicator" style="display: none;">
+            <div class="recording-dot"></div>
+            <span class="text-sm text-red-600">Идет запись...</span>
+            <span id="recording-timer" class="recording-timer">00:00</span>
+            <button onclick="stopVoiceRecording()"
+                    class="ml-auto text-sm text-red-600 hover:text-red-800">
+                <i class="fas fa-stop mr-1"></i>Завершить
             </button>
-        </form>
+        </div>
+
+        <!-- Медиа-контролы -->
+        <div class="media-controls">
+            <button type="button" id="attach-file-btn" class="media-control-btn"
+                    title="Прикрепить файл">
+                <i class="fas fa-paperclip"></i>
+            </button>
+
+            <button type="button" id="camera-btn" class="media-control-btn"
+                    title="Сделать фото">
+                <i class="fas fa-camera"></i>
+            </button>
+
+            <button type="button" id="gallery-btn" class="media-control-btn"
+                    title="Выбрать из галереи">
+                <i class="fas fa-images"></i>
+            </button>
+
+            <button type="button" id="voice-message-btn" class="media-control-btn"
+                    title="Голосовое сообщение"
+                    onmousedown="startVoiceRecording()"
+                    onmouseup="stopVoiceRecording()"
+                    ontouchstart="startVoiceRecording()"
+                    ontouchend="stopVoiceRecording()">
+                <i class="fas fa-microphone"></i>
+            </button>
+
+            <!-- Скрытые инпуты -->
+            <input type="file" id="file-input" class="hidden" multiple
+                   accept="image/*,video/*,.pdf,.doc,.docx,.txt,.zip">
+            <input type="file" id="camera-input" class="hidden"
+                   accept="image/*" capture="environment">
+            <input type="file" id="gallery-input" class="hidden"
+                   accept="image/*" multiple>
+        </div>
+
+        <!-- Форма ввода -->
+        <div class="input-container relative">
+            <form id="message-form">
+                {% csrf_token %}
+                <textarea id="message-input"
+                          rows="1"
+                          placeholder="Напишите сообщение..."
+                          autocomplete="off"
+                          oninput="autoResize(this)"></textarea>
+                <button type="submit" id="send-button" class="send-button">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+    // ==================== ОСНОВНЫЕ ПЕРЕМЕННЫЕ ====================
     const chatId = {{ chat.id }};
     const userId = {{ user.id }};
     const username = "{{ user.username }}";
+    const maxFileSize = {{ max_file_size|default:52428800 }}; // 50MB
 
-    // WebSocket соединение
-    const chatSocket = new WebSocket(
-        'ws://' + window.location.host + '/ws/chat/' + chatId + '/'
-    );
+    // WebSocket
+    const chatSocket = new WebSocket(`ws://${window.location.host}/ws/chat/${chatId}/`);
 
-    // Элементы DOM
+    // DOM элементы
     const messageContainer = document.getElementById('message-container');
     const messageForm = document.getElementById('message-form');
     const messageInput = document.getElementById('message-input');
-    const typingIndicator = document.getElementById('typing-indicator');
-    const typingText = document.getElementById('typing-text');
+    const sendButton = document.getElementById('send-button');
+    const previewContainer = document.getElementById('preview-container');
+    const previewItems = document.getElementById('preview-items');
+    const recordingIndicator = document.getElementById('recording-indicator');
+    const recordingTimer = document.getElementById('recording-timer');
 
+    // Состояние
     let typingTimeout;
     let isConnected = false;
+    let mediaFiles = [];
+    let isRecording = false;
+    let mediaRecorder;
+    let audioChunks = [];
+    let recordingStartTime;
+    let recordingInterval;
 
-    // Фокус на поле ввода
-    messageInput.focus();
+    // ==================== ОСНОВНЫЕ ФУНКЦИИ ЧАТА ====================
+
+    // Авторесайз текстового поля
+    function autoResize(textarea) {
+        textarea.style.height = 'auto';
+        const newHeight = Math.min(textarea.scrollHeight, 150);
+        textarea.style.height = newHeight + 'px';
+    }
 
     // Прокрутка вниз
     function scrollToBottom() {
         messageContainer.scrollTop = messageContainer.scrollHeight;
     }
 
-    // Форматирование времени
-    function formatTime(dateString) {
-        const date = new Date(dateString);
-        return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    // ==================== МЕДИА ФУНКЦИИ ====================
+
+    // Прикрепление файлов
+    document.getElementById('attach-file-btn').addEventListener('click', () => {
+        document.getElementById('file-input').click();
+    });
+
+    document.getElementById('camera-btn').addEventListener('click', () => {
+        document.getElementById('camera-input').click();
+    });
+
+    document.getElementById('gallery-btn').addEventListener('click', () => {
+        document.getElementById('gallery-input').click();
+    });
+
+    // Обработка выбранных файлов
+    document.getElementById('file-input').addEventListener('change', handleFileSelect);
+    document.getElementById('camera-input').addEventListener('change', handleFileSelect);
+    document.getElementById('gallery-input').addEventListener('change', handleFileSelect);
+
+    function handleFileSelect(event) {
+        const files = Array.from(event.target.files);
+        if (files.length === 0) return;
+
+        files.forEach(file => {
+            // Проверка размера
+            if (file.size > maxFileSize) {
+                alert(`Файл "${file.name}" слишком большой. Максимум: 50MB`);
+                return;
+            }
+
+            // Добавляем файл в массив
+            mediaFiles.push(file);
+
+            // Создаем превью
+            createFilePreview(file);
+        });
+
+        // Показываем контейнер превью
+        previewContainer.style.display = 'block';
+
+        // Очищаем значение input
+        event.target.value = '';
     }
 
-    // Экранирование HTML
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+    function createFilePreview(file) {
+        const previewItem = document.createElement('div');
+        previewItem.className = 'preview-item';
+        previewItem.dataset.filename = file.name;
+
+        // Определяем тип файла
+        const isImage = file.type.startsWith('image/');
+        const isVideo = file.type.startsWith('video/');
+
+        if (isImage) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.className = 'preview-image';
+                previewItem.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+        } else if (isVideo) {
+            previewItem.innerHTML = `
+                <div class="preview-document">
+                    <i class="fas fa-video text-blue-500 text-xl mb-2"></i>
+                    <span class="text-xs text-center truncate w-full">${file.name}</span>
+                </div>
+            `;
+        } else {
+            const ext = file.name.split('.').pop().toLowerCase();
+            let icon = 'fa-file';
+            if (ext === 'pdf') icon = 'fa-file-pdf';
+            else if (['doc', 'docx'].includes(ext)) icon = 'fa-file-word';
+            else if (ext === 'txt') icon = 'fa-file-alt';
+            else if (['zip', 'rar', '7z'].includes(ext)) icon = 'fa-file-archive';
+
+            previewItem.innerHTML = `
+                <div class="preview-document">
+                    <i class="fas ${icon} text-blue-500 text-xl mb-2"></i>
+                    <span class="text-xs text-center truncate w-full">${file.name}</span>
+                    <span class="text-xs text-gray-500">${formatFileSize(file.size)}</span>
+                </div>
+            `;
+        }
+
+        // Кнопка удаления
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-preview';
+        removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+        removeBtn.onclick = function() {
+            removeFilePreview(file.name);
+        };
+
+        previewItem.appendChild(removeBtn);
+        previewItems.appendChild(previewItem);
     }
 
-    // Добавление сообщения в чат
-    function addMessageToChat(data) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message mb-3 ${data.sender_id === userId ? 'text-right' : ''}`;
-        messageDiv.dataset.messageId = data.message_id;
+    function removeFilePreview(filename) {
+        // Удаляем из массива
+        const index = mediaFiles.findIndex(f => f.name === filename);
+        if (index > -1) {
+            mediaFiles.splice(index, 1);
+        }
 
-        const isOwnMessage = data.sender_id === userId;
-        const escapedMessage = escapeHtml(data.message);
-        const formattedMessage = escapedMessage.replace(/\n/g, '<br>');
-        const formattedTime = formatTime(data.timestamp);
+        // Удаляем превью
+        const preview = document.querySelector(`.preview-item[data-filename="${filename}"]`);
+        if (preview) preview.remove();
 
-        const messageContent = `
-            ${!isOwnMessage ? `
-                <div class="text-sm text-gray-600 mb-1">
-                    ${escapeHtml(data.sender_username)}
-                </div>
-            ` : ''}
-            <div class="inline-block">
-                <div class="message-bubble p-3 ${isOwnMessage ? 'own-message' : 'other-message'}">
-                    ${formattedMessage}
-                </div>
-                <div class="text-xs text-gray-500 mt-1">
-                    ${formattedTime}
-                    ${isOwnMessage ? '<i class="fas fa-check text-gray-400 ml-1"></i>' : ''}
-                </div>
-            </div>
-        `;
+        // Скрываем контейнер если нет файлов
+        if (mediaFiles.length === 0) {
+            previewContainer.style.display = 'none';
+        }
+    }
 
-        messageDiv.innerHTML = messageContent;
-        messageContainer.appendChild(messageDiv);
+    function clearMediaPreview() {
+        mediaFiles = [];
+        previewItems.innerHTML = '';
+        previewContainer.style.display = 'none';
+    }
+
+    // ==================== ГОЛОСОВЫЕ СООБЩЕНИЯ ====================
+
+    function startVoiceRecording() {
+        if (!navigator.mediaDevices || !window.MediaRecorder) {
+            alert('Ваш браузер не поддерживает запись голоса');
+            return;
+        }
+
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                isRecording = true;
+                audioChunks = [];
+
+                // Показываем индикатор
+                recordingIndicator.style.display = 'flex';
+                document.getElementById('voice-message-btn').innerHTML = '<i class="fas fa-square text-red-500"></i>';
+
+                // Запускаем таймер
+                recordingStartTime = Date.now();
+                updateRecordingTimer();
+                recordingInterval = setInterval(updateRecordingTimer, 1000);
+
+                // Создаем MediaRecorder
+                mediaRecorder = new MediaRecorder(stream, {
+                    mimeType: 'audio/webm;codecs=opus'
+                });
+
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    await sendVoiceMessage(audioBlob);
+
+                    // Скрываем индикатор
+                    recordingIndicator.style.display = 'none';
+                    document.getElementById('voice-message-btn').innerHTML = '<i class="fas fa-microphone"></i>';
+
+                    clearInterval(recordingInterval);
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start();
+            })
+            .catch(error => {
+                console.error('Ошибка доступа к микрофону:', error);
+                alert('Не удалось получить доступ к микрофону. Проверьте разрешения.');
+            });
+    }
+
+    function stopVoiceRecording() {
+        if (isRecording && mediaRecorder && mediaRecorder.state !== 'inactive') {
+            isRecording = false;
+            mediaRecorder.stop();
+            clearInterval(recordingInterval);
+        }
+    }
+
+    function updateRecordingTimer() {
+        if (!recordingStartTime) return;
+
+        const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+        const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+        const seconds = (elapsed % 60).toString().padStart(2, '0');
+
+        recordingTimer.textContent = `${minutes}:${seconds}`;
+
+        // Автоостановка через 2 минуты
+        if (elapsed >= 120) {
+            stopVoiceRecording();
+        }
+    }
+
+    async function sendVoiceMessage(audioBlob) {
+        const formData = new FormData();
+        const duration = Math.floor((Date.now() - recordingStartTime) / 1000);
+
+        formData.append('voice', audioBlob, `voice_${Date.now()}.webm`);
+        formData.append('duration', duration);
+        formData.append('chat_id', chatId);
+
+        try {
+            const response = await fetch(`/chat/${chatId}/upload-voice/`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success && isConnected) {
+                // Отправляем через WebSocket
+                chatSocket.send(JSON.stringify({
+                    type: 'voice_message',
+                    voice_data: data.voice,
+                    message_id: data.message_id
+                }));
+            }
+        } catch (error) {
+            console.error('Ошибка отправки голосового:', error);
+        }
+    }
+
+    // ==================== ОТПРАВКА СООБЩЕНИЙ ====================
+
+    async function sendMediaFiles() {
+        if (mediaFiles.length === 0) return [];
+
+        const results = [];
+
+        for (const file of mediaFiles) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('chat_id', chatId);
+            formData.append('caption', messageInput.value.trim());
+
+            try {
+                const response = await fetch(`/chat/${chatId}/upload-media/`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    results.push(data);
+
+                    // Отправляем через WebSocket
+                    if (isConnected) {
+                        chatSocket.send(JSON.stringify({
+                            type: 'media_message',
+                            media_data: data.media,
+                            message_id: data.message_id
+                        }));
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки файла:', error);
+            }
+        }
+
+        return results;
+    }
+
+    messageForm.onsubmit = async function(e) {
+        e.preventDefault();
+
+        const message = messageInput.value.trim();
+        sendButton.disabled = true;
+
+        // Отправляем медиафайлы если есть
+        if (mediaFiles.length > 0) {
+            await sendMediaFiles();
+            clearMediaPreview();
+            messageInput.value = '';
+        }
+        // Отправляем текстовое сообщение
+        else if (message && isConnected) {
+            chatSocket.send(JSON.stringify({
+                type: 'chat_message',
+                message: message
+            }));
+            messageInput.value = '';
+        }
+
+        // Сбрасываем высоту поля
+        messageInput.style.height = 'auto';
+        messageInput.focus();
+
+        // Очищаем таймаут набора текста
+        clearTimeout(typingTimeout);
+        if (isConnected) {
+            chatSocket.send(JSON.stringify({
+                type: 'typing',
+                is_typing: false
+            }));
+        }
+
+        sendButton.disabled = false;
+    };
+
+    // ==================== УТИЛИТЫ ====================
+
+    function formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+    }
+
+    function openMedia(url) {
+        window.open(url, '_blank');
+    }
+
+    function downloadFile(url, filename) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    // ==================== WebSocket ОБРАБОТЧИКИ ====================
+
+    chatSocket.onopen = function() {
+        console.log('WebSocket соединение установлено');
+        isConnected = true;
         scrollToBottom();
-    }
+    };
 
-    // Обработчик получения сообщений
+    chatSocket.onclose = function(e) {
+        console.log('WebSocket соединение закрыто', e);
+        isConnected = false;
+    };
+
+    chatSocket.onerror = function(error) {
+        console.error('WebSocket ошибка:', error);
+    };
+
     chatSocket.onmessage = function(e) {
         try {
             const data = JSON.parse(e.data);
 
             if (data.type === 'chat_message') {
                 addMessageToChat(data);
+            } else if (data.type === 'media_message') {
+                addMediaMessageToChat(data);
+            } else if (data.type === 'voice_message') {
+                addVoiceMessageToChat(data);
             } else if (data.type === 'typing') {
+                // Обработка индикатора набора текста
+                const typingIndicator = document.getElementById('typing-indicator');
+                const typingText = document.getElementById('typing-text');
+
                 if (data.is_typing && data.user_id !== userId) {
                     typingText.textContent = `${data.username} печатает...`;
-                    typingIndicator.classList.add('active');
+                    typingIndicator.style.display = 'block';
                 } else {
-                    typingIndicator.classList.remove('active');
+                    typingIndicator.style.display = 'none';
                 }
             }
         } catch (error) {
@@ -213,84 +1071,44 @@
         }
     };
 
-    // Обработчик открытия соединения
-    chatSocket.onopen = function() {
-        console.log('WebSocket соединение установлено');
-        isConnected = true;
-    };
+    // Функции добавления сообщений в чат (упрощенные)
+    function addMessageToChat(data) {
+        // Реализуйте добавление текстового сообщения
+        scrollToBottom();
+    }
 
-    // Обработчик закрытия соединения
-    chatSocket.onclose = function(e) {
-        console.log('WebSocket соединение закрыто', e);
-        isConnected = false;
-    };
+    function addMediaMessageToChat(data) {
+        // Реализуйте добавление медиа-сообщения
+        scrollToBottom();
+    }
 
-    // Обработчик ошибок
-    chatSocket.onerror = function(error) {
-        console.error('WebSocket ошибка:', error);
-    };
+    function addVoiceMessageToChat(data) {
+        // Реализуйте добавление голосового сообщения
+        scrollToBottom();
+    }
 
-    // Отправка сообщения
-    messageForm.onsubmit = function(e) {
-        e.preventDefault();
+    // ==================== ИНИЦИАЛИЗАЦИЯ ====================
 
-        const message = messageInput.value.trim();
-        if (message && isConnected) {
-            chatSocket.send(JSON.stringify({
-                'type': 'chat_message',
-                'message': message
-            }));
-            messageInput.value = '';
-            messageInput.focus();
+    document.addEventListener('DOMContentLoaded', function() {
+        messageInput.focus();
+        scrollToBottom();
 
-            // Отправляем сигнал о прекращении набора
-            clearTimeout(typingTimeout);
-            chatSocket.send(JSON.stringify({
-                'type': 'typing',
-                'is_typing': false
-            }));
-        }
-    };
-
-    // Отслеживание набора текста
-    let lastTypingTime = 0;
-    const TYPING_TIMEOUT = 1000; // 1 секунда
-
-    messageInput.addEventListener('input', function() {
-        const now = Date.now();
-
-        // Отправляем сигнал о наборе не чаще чем раз в секунду
-        if (now - lastTypingTime > TYPING_TIMEOUT && isConnected) {
-            chatSocket.send(JSON.stringify({
-                'type': 'typing',
-                'is_typing': true
-            }));
-            lastTypingTime = now;
-        }
-
-        clearTimeout(typingTimeout);
-        typingTimeout = setTimeout(() => {
-            if (isConnected) {
-                chatSocket.send(JSON.stringify({
-                    'type': 'typing',
-                    'is_typing': false
-                }));
+        // Обработка Enter/Shift+Enter
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                messageForm.dispatchEvent(new Event('submit'));
             }
-        }, 2000);
+
+            if (e.key === 'Enter' && e.shiftKey) {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                this.value = this.value.substring(0, start) + '\n' + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 1;
+                autoResize(this);
+            }
+        });
     });
-
-    // Отправка сообщения по Enter (без Shift)
-    messageInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            messageForm.dispatchEvent(new Event('submit'));
-        }
-    });
-
-    // Прокрутка при загрузке
-    window.onload = scrollToBottom;
-
-    // Автопрокрутка при изменении размера окна
-    window.addEventListener('resize', scrollToBottom);
 </script>
 {% endblock %}

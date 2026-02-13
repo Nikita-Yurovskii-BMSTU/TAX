@@ -1,0 +1,507 @@
+{% extends 'base.html' %}
+
+{% block title %}Медиа чата: {{ chat.name|default:chat }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .gallery-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .gallery-header {
+        margin-bottom: 30px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .gallery-stats {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin-top: 15px;
+    }
+    
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: #f3f4f6;
+        border-radius: 20px;
+        font-size: 14px;
+    }
+    
+    .stat-item i {
+        color: #3b82f6;
+    }
+    
+    .gallery-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+    
+    .gallery-tab {
+        padding: 10px 20px;
+        background: #f3f4f6;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 2px solid transparent;
+    }
+    
+    .gallery-tab.active {
+        background: #3b82f6;
+        color: white;
+        border-color: #2563eb;
+    }
+    
+    .gallery-tab:hover:not(.active) {
+        background: #e5e7eb;
+    }
+    
+    .media-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+    
+    .media-item {
+        position: relative;
+        border-radius: 10px;
+        overflow: hidden;
+        background: white;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+        cursor: pointer;
+    }
+    
+    .media-item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    
+    .media-preview {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+        display: block;
+    }
+    
+    .document-preview {
+        height: 150px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #f8fafc;
+        padding: 20px;
+    }
+    
+    .document-preview i {
+        font-size: 40px;
+        color: #6b7280;
+        margin-bottom: 10px;
+    }
+    
+    .document-name {
+        font-size: 12px;
+        text-align: center;
+        word-break: break-all;
+        padding: 0 5px;
+        color: #374151;
+    }
+    
+    .media-info {
+        padding: 10px;
+        font-size: 12px;
+        color: #6b7280;
+        border-top: 1px solid #e5e7eb;
+    }
+    
+    .media-type-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(0,0,0,0.7);
+        color: white;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+    }
+    
+    .voice-item {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        background: #f0f9ff;
+        border-radius: 10px;
+    }
+    
+    .voice-icon {
+        font-size: 24px;
+        color: #3b82f6;
+        margin-right: 15px;
+    }
+    
+    .voice-info {
+        flex-grow: 1;
+    }
+    
+    .voice-duration {
+        font-size: 12px;
+        color: #6b7280;
+    }
+    
+    .empty-gallery {
+        text-align: center;
+        padding: 50px 20px;
+        color: #6b7280;
+    }
+    
+    .empty-gallery i {
+        font-size: 60px;
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
+    
+    .back-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 20px;
+        color: #3b82f6;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    
+    .back-button:hover {
+        color: #2563eb;
+    }
+    
+    @media (max-width: 768px) {
+        .media-grid {
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        }
+        
+        .gallery-container {
+            padding: 15px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="gallery-container">
+    <!-- Кнопка назад -->
+    <a href="{% url 'chat_detail' chat.id %}" class="back-button">
+        <i class="fas fa-arrow-left"></i> Назад к чату
+    </a>
+    
+    <!-- Заголовок -->
+    <div class="gallery-header">
+        <h1 class="text-2xl font-bold text-gray-800">
+            <i class="fas fa-images mr-2"></i>Медиа чата: {{ chat.name|default:chat }}
+        </h1>
+        
+        <!-- Статистика -->
+        <div class="gallery-stats">
+            <div class="stat-item">
+                <i class="fas fa-layer-group"></i>
+                <span>Всего: {{ total_media }}</span>
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-image"></i>
+                <span>Фото: {{ image_count }}</span>
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-video"></i>
+                <span>Видео: {{ video_count }}</span>
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-file"></i>
+                <span>Документы: {{ document_count }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Табы для фильтрации -->
+    <div class="gallery-tabs" id="gallery-tabs">
+        <div class="gallery-tab active" data-type="all">
+            <i class="fas fa-th-large mr-2"></i>Все
+        </div>
+        <div class="gallery-tab" data-type="image">
+            <i class="fas fa-image mr-2"></i>Фото
+        </div>
+        <div class="gallery-tab" data-type="video">
+            <i class="fas fa-video mr-2"></i>Видео
+        </div>
+        <div class="gallery-tab" data-type="document">
+            <i class="fas fa-file mr-2"></i>Документы
+        </div>
+        <div class="gallery-tab" data-type="voice">
+            <i class="fas fa-microphone mr-2"></i>Голосовые
+        </div>
+    </div>
+    
+    <!-- Сетка медиафайлов -->
+    <div id="media-grid-container">
+        <!-- Изображения -->
+        {% if media_by_type.images %}
+        <div class="media-section" data-type="image">
+            <h3 class="text-lg font-semibold mb-3 text-gray-700">
+                <i class="fas fa-image mr-2"></i>Фотографии ({{ media_by_type.images.count }})
+            </h3>
+            <div class="media-grid">
+                {% for media in media_by_type.images %}
+                <div class="media-item" data-media-id="{{ media.id }}" data-type="image">
+                    <div class="media-type-badge">
+                        <i class="fas fa-image mr-1"></i>Фото
+                    </div>
+                    <img src="{{ media.get_thumbnail_url }}" 
+                         alt="{{ media.caption|default:media.file_name }}" 
+                         class="media-preview"
+                         loading="lazy">
+                    <div class="media-info">
+                        <div class="font-medium truncate">{{ media.file_name }}</div>
+                        <div class="text-xs">{{ media.uploaded_at|date:"d.m.Y H:i" }}</div>
+                        <div class="text-xs">{{ media.get_file_size_display }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Видео -->
+        {% if media_by_type.videos %}
+        <div class="media-section" data-type="video">
+            <h3 class="text-lg font-semibold mb-3 text-gray-700">
+                <i class="fas fa-video mr-2"></i>Видео ({{ media_by_type.videos.count }})
+            </h3>
+            <div class="media-grid">
+                {% for media in media_by_type.videos %}
+                <div class="media-item" data-media-id="{{ media.id }}" data-type="video">
+                    <div class="media-type-badge">
+                        <i class="fas fa-video mr-1"></i>Видео
+                    </div>
+                    <img src="{{ media.get_thumbnail_url }}" 
+                         alt="{{ media.caption|default:media.file_name }}" 
+                         class="media-preview"
+                         loading="lazy">
+                    <div class="media-info">
+                        <div class="font-medium truncate">{{ media.file_name }}</div>
+                        <div class="text-xs">{{ media.uploaded_at|date:"d.m.Y H:i" }}</div>
+                        <div class="text-xs">{{ media.get_file_size_display }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Документы -->
+        {% if media_by_type.documents %}
+        <div class="media-section" data-type="document">
+            <h3 class="text-lg font-semibold mb-3 text-gray-700">
+                <i class="fas fa-file mr-2"></i>Документы ({{ media_by_type.documents.count }})
+            </h3>
+            <div class="media-grid">
+                {% for media in media_by_type.documents %}
+                <div class="media-item" data-media-id="{{ media.id }}" data-type="document">
+                    <div class="document-preview">
+                        {% if media.file_extension == '.pdf' %}
+                        <i class="fas fa-file-pdf"></i>
+                        {% elif media.file_extension in '.doc,.docx' %}
+                        <i class="fas fa-file-word"></i>
+                        {% elif media.file_extension == '.txt' %}
+                        <i class="fas fa-file-alt"></i>
+                        {% elif media.file_extension in '.zip,.rar,.7z' %}
+                        <i class="fas fa-file-archive"></i>
+                        {% else %}
+                        <i class="fas fa-file"></i>
+                        {% endif %}
+                        <div class="document-name">{{ media.file_name }}</div>
+                    </div>
+                    <div class="media-info">
+                        <div class="text-xs">{{ media.uploaded_at|date:"d.m.Y H:i" }}</div>
+                        <div class="text-xs">{{ media.get_file_size_display }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Голосовые сообщения -->
+        {% if media_by_type.voice %}
+        <div class="media-section" data-type="voice">
+            <h3 class="text-lg font-semibold mb-3 text-gray-700">
+                <i class="fas fa-microphone mr-2"></i>Голосовые сообщения ({{ media_by_type.voice.count }})
+            </h3>
+            <div class="space-y-3">
+                {% for media in media_by_type.voice %}
+                <div class="voice-item" data-media-id="{{ media.id }}" data-type="voice">
+                    <div class="voice-icon">
+                        <i class="fas fa-microphone"></i>
+                    </div>
+                    <div class="voice-info">
+                        <div class="font-medium">{{ media.sender.username }}</div>
+                        <div class="voice-duration">
+                            <i class="fas fa-clock mr-1"></i>
+                            {{ media.duration }} сек • {{ media.uploaded_at|date:"d.m.Y H:i" }}
+                        </div>
+                    </div>
+                    <button class="play-voice-btn p-2 text-blue-600 hover:text-blue-800"
+                            data-audio-url="{{ media.file.url }}">
+                        <i class="fas fa-play"></i>
+                    </button>
+                    <a href="{{ media.file.url }}" 
+                       class="p-2 text-gray-600 hover:text-gray-800"
+                       download>
+                        <i class="fas fa-download"></i>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Пустая галерея -->
+        {% if total_media == 0 %}
+        <div class="empty-gallery">
+            <i class="fas fa-images"></i>
+            <h3 class="text-xl font-medium mb-2">В этом чате еще нет медиафайлов</h3>
+            <p class="text-gray-600">Загрузите первое фото, видео или документ в чате</p>
+            <a href="{% url 'chat_detail' chat.id %}" 
+               class="inline-block mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                <i class="fas fa-arrow-left mr-2"></i>Вернуться в чат
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Фильтрация по типам
+    document.querySelectorAll('.gallery-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            // Убираем активный класс у всех табов
+            document.querySelectorAll('.gallery-tab').forEach(t => {
+                t.classList.remove('active');
+            });
+            
+            // Добавляем активный класс текущему табу
+            this.classList.add('active');
+            
+            const type = this.dataset.type;
+            
+            // Показываем/скрываем секции
+            document.querySelectorAll('.media-section').forEach(section => {
+                if (type === 'all' || section.dataset.type === type) {
+                    section.style.display = 'block';
+                } else {
+                    section.style.display = 'none';
+                }
+            });
+        });
+    });
+    
+    // Просмотр медиафайла
+    document.querySelectorAll('.media-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            // Не открываем при клике на кнопки внутри
+            if (e.target.closest('button') || e.target.closest('a')) {
+                return;
+            }
+            
+            const mediaId = this.dataset.mediaId;
+            const mediaType = this.dataset.type;
+            
+            if (mediaType === 'image' || mediaType === 'video') {
+                // Открываем в новом окне
+                window.open(`/media/${mediaId}/view/`, '_blank');
+            } else if (mediaType === 'document') {
+                // Скачиваем документ
+                window.location.href = `/media/${mediaId}/download/`;
+            }
+        });
+    });
+    
+    // Воспроизведение голосовых сообщений
+    document.querySelectorAll('.play-voice-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const audioUrl = this.dataset.audioUrl;
+            const audio = new Audio(audioUrl);
+            
+            // Меняем иконку при воспроизведении
+            const icon = this.querySelector('i');
+            
+            audio.addEventListener('play', () => {
+                icon.classList.remove('fa-play');
+                icon.classList.add('fa-pause');
+            });
+            
+            audio.addEventListener('pause', () => {
+                icon.classList.remove('fa-pause');
+                icon.classList.add('fa-play');
+            });
+            
+            audio.addEventListener('ended', () => {
+                icon.classList.remove('fa-pause');
+                icon.classList.add('fa-play');
+            });
+            
+            // Воспроизводим или ставим на паузу
+            if (audio.paused) {
+                audio.play();
+            } else {
+                audio.pause();
+            }
+        });
+    });
+    
+    // Загрузка больше файлов при прокрутке (ленивая загрузка)
+    let isLoading = false;
+    let page = 1;
+    
+    window.addEventListener('scroll', function() {
+        if (isLoading) return;
+        
+        const scrollPosition = window.innerHeight + window.scrollY;
+        const pageHeight = document.documentElement.scrollHeight;
+        
+        if (scrollPosition >= pageHeight - 500) {
+            loadMoreMedia();
+        }
+    });
+    
+    async function loadMoreMedia() {
+        isLoading = true;
+        page++;
+        
+        try {
+            const activeTab = document.querySelector('.gallery-tab.active');
+            const type = activeTab ? activeTab.dataset.type : 'all';
+            
+            const response = await fetch(`/chat/{{ chat.id }}/media/?type=${type}&page=${page}`);
+            const data = await response.json();
+            
+            if (data.success && data.media.length > 0) {
+                // Здесь можно добавить новую разметку
+                console.log('Загружено больше медиа:', data.media);
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки:', error);
+        } finally {
+            isLoading = false;
+        }
+    }
+</script>
+{% endblock %}
